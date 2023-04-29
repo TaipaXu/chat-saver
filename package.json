@@ -1,7 +1,7 @@
 {
     "name": "chat-saver",
-    "version": "0.1.0",
-    "description": "A browser extension that can save the current chat history of ChatGPT to the local device.",
+    "version": "0.2.0",
+    "description": "A browser extension that allows you to save the current chat history of ChatGPT to your local device.",
     "bugs": "https://github.com/TaipaXu/chat-saver/issues",
     "repository": {
         "type": "git",
