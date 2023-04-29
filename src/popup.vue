@@ -9,9 +9,24 @@ import browser from 'webextension-polyfill';
 const download = async () => {
     const tabs: browser.Tabs.Tab[] = await browser.tabs.query({ active: true, currentWindow: true });
     if (tabs.length === 1) {
+        browser.runtime.onMessage.addListener((message: any) => {
+            if (message.type === 'inject') {
+                browser.scripting.executeScript({
+                    target: { tabId: tabs[0].id as number },
+                    files: ['inject.js'],
+                });
+            }
+        });
+
         browser.scripting.executeScript({
             target: { tabId: tabs[0].id as number },
-            files: ['inject.js'],
+            func: () => {
+                if (globalThis.chatSaverDownload === undefined) {
+                    chrome.runtime.sendMessage({ type: 'inject' });
+                } else {
+                    globalThis.chatSaverDownload();
+                }
+            }
         });
     }
 };
@@ -45,6 +60,25 @@ const download = async () => {
 
     &:active {
         background-color: darken($color: $bg-color, $amount: 10);
+    }
+}
+
+.option {
+    &s {
+        display: flex;
+        flex-direction: row;
+    }
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    &+& {
+        margin-left: 20px;
+    }
+
+    &__input {
+        margin-left: 5px;
     }
 }
 </style>

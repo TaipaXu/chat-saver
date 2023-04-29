@@ -1,3 +1,5 @@
+import { toBlob } from 'html-to-image';
+
 interface Item {
     question: string;
     answer: string;
@@ -5,8 +7,16 @@ interface Item {
 
 if (globalThis.chatSaverDownload === undefined) {
     globalThis.chatSaverDownload = async () => {
+        const $chats: HTMLElement | null = document.querySelector('main > div:first-child > div > div > div');
+        const imageBlob: Blob | null = await toBlob($chats!)
+        if (imageBlob !== null) {
+            const imageLink: HTMLAnchorElement = document.createElement('a');
+            imageLink.download = 'chat.png';
+            imageLink.href = URL.createObjectURL(imageBlob);
+            imageLink.click();
+        }
+
         const chats: Item[] = [];
-        const $chats: Element | null = document.querySelector('main > div:first-child > div > div > div');
         if ($chats) {
             for (let i = 0; i < $chats.children.length; i += 2) {
                 if (i !== $chats.children.length - 1) {
@@ -33,19 +43,11 @@ if (globalThis.chatSaverDownload === undefined) {
             }
         }
 
-        const fileHandle = await window.showSaveFilePicker({
-            types: [
-                {
-                    description: 'ChatGPT',
-                    accept: {
-                        'text/plain': ['.txt']
-                    }
-                }
-            ]
-        });
-        const writable = await fileHandle.createWritable();
-        await writable.write(content);
-        await writable.close();
+        const textBlob: Blob = new Blob([content], { type: 'text/plain' });
+        const textLink: HTMLAnchorElement = document.createElement('a');
+        textLink.download = 'chat.txt';
+        textLink.href = URL.createObjectURL(textBlob);
+        textLink.click();
     };
 }
 

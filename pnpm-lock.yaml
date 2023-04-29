@@ -3,6 +3,7 @@ lockfileVersion: 5.4
 specifiers:
   '@types/webextension-polyfill': ^0.10.0
   '@vitejs/plugin-vue': ^4.2.1
+  html-to-image: ^1.11.11
   rollup-plugin-copy: ^3.4.0
   sass: ^1.62.1
   typescript: ^5.0.4
@@ -14,6 +15,7 @@ specifiers:
   webextension-polyfill: ^0.10.0
 
 dependencies:
+  html-to-image: 1.11.11
   vue: 3.2.47
 
 devDependencies:
@@ -683,6 +685,10 @@ packages:
     resolution: {integrity: sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==}
     hasBin: true
     dev: true
+
+  /html-to-image/1.11.11:
+    resolution: {integrity: sha512-9gux8QhvjRO/erSnDPv28noDZcPZmYE7e1vFsBLKLlRlKDSqNJYebj6Qz1TGd5lsRV+X+xYyjCKjuZdABinWjA==}
+    dev: false
 
   /ignore/5.2.4:
     resolution: {integrity: sha512-MAb38BcSbH0eHNBxn7ql2NH/kX33OkB3lZ1BNdh7ENeRChHTYsTvWrMubiIAMNS2llXEEgZ1MUOBtXChP3kaFQ==}
