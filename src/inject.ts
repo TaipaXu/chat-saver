@@ -7,7 +7,7 @@ interface Item {
 
 if (globalThis.chatSaverDownload === undefined) {
     globalThis.chatSaverDownload = async () => {
-        const $chats: HTMLElement | null = document.querySelector('main > div:first-child > div > div > div');
+        const $chats: HTMLElement | null = document.querySelector('main > div:not(.absolute) > div > div > div');
         const imageBlob: Blob | null = await toBlob($chats!)
         if (imageBlob !== null) {
             const imageLink: HTMLAnchorElement = document.createElement('a');
