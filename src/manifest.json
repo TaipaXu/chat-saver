@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Chat Saver",
-    "version": "0.2.0",
+    "version": "0.2.1",
     "description": "A browser extension that allows you to save the current chat history of ChatGPT to your local device.",
     "icons": {
         "16": "./assets/icon.png",
