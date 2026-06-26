@@ -22,5 +22,5 @@
         "service_worker": "service.js"
     },
     "permissions": ["tabs", "scripting"],
-    "host_permissions": ["https://chat.openai.com/"]
+    "host_permissions": ["https://chatgpt.com/*"]
 }
