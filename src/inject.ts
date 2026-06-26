@@ -3,52 +3,45 @@ import { toBlob } from 'html-to-image';
 interface Item {
     question: string;
     answer: string;
-};
+}
 
 if (globalThis.chatSaverDownload === undefined) {
     globalThis.chatSaverDownload = async () => {
-        const $chats: HTMLElement | null = document.querySelector('main > div:not(.absolute) > div > div > div');
-        const imageBlob: Blob | null = await toBlob($chats!)
+        const chatContainer = document.querySelector<HTMLElement>(
+            'main > div:not(.absolute) > div > div > div',
+        );
+
+        if (!chatContainer) return;
+
+        const imageBlob = await toBlob(chatContainer);
         if (imageBlob !== null) {
-            const imageLink: HTMLAnchorElement = document.createElement('a');
+            const imageLink = document.createElement('a');
             imageLink.download = 'chat.png';
             imageLink.href = URL.createObjectURL(imageBlob);
             imageLink.click();
         }
 
         const chats: Item[] = [];
-        if ($chats) {
-            for (let i = 0; i < $chats.children.length; i += 2) {
-                if (i !== $chats.children.length - 1) {
-                    const $chat: Element = $chats.children[i];
-                    const $chatNext: Element = $chats.children[i + 1];
-                    const chat: Item = {
-                        question: $chat.textContent!,
-                        answer: $chatNext.textContent!,
-                    };
-                    chats.push(chat);
-                }
-            }
+        for (let i = 0; i < chatContainer.children.length - 1; i += 2) {
+            const chat = chatContainer.children.item(i);
+            const chatNext = chatContainer.children.item(i + 1);
+            if (!chat || !chatNext) continue;
+
+            chats.push({
+                question: chat.textContent ?? '',
+                answer: chatNext.textContent ?? '',
+            });
         }
 
-        let content: string = '';
-        for (let i = 0; i < chats.length; i++) {
-            const item = chats[i];
-            content += 'Q:\n' + item.question + '\n\n';
-            content += 'A:\n' + item.answer + '\n';
-            content += '------------------------\n';
-
-            if (i !== chats.length - 1) {
-                content += '\n';
-            }
-        }
-
-        const textBlob: Blob = new Blob([content], { type: 'text/plain' });
-        const textLink: HTMLAnchorElement = document.createElement('a');
+        const content = chats
+            .map((item) => `Q:\n${item.question}\n\nA:\n${item.answer}\n------------------------\n`)
+            .join('\n');
+        const textBlob = new Blob([content], { type: 'text/plain' });
+        const textLink = document.createElement('a');
         textLink.download = 'chat.txt';
         textLink.href = URL.createObjectURL(textBlob);
         textLink.click();
     };
 }
 
-globalThis.chatSaverDownload();
+void globalThis.chatSaverDownload();

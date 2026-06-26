@@ -21,11 +21,6 @@
         "type": "module",
         "service_worker": "service.js"
     },
-    "permissions": [
-        "tabs",
-        "scripting"
-    ],
-    "host_permissions": [
-        "https://chat.openai.com/"
-    ]
+    "permissions": ["tabs", "scripting"],
+    "host_permissions": ["https://chat.openai.com/"]
 }

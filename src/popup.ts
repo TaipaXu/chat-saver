@@ -1,5 +1,6 @@
 import App from './popup.vue';
 import '@/styles/index.scss';
+import { createVaporApp } from 'vue';
 
-const app = createApp(App);
+const app = createVaporApp(App);
 app.mount('#app');

@@ -1,38 +1,63 @@
 <template>
     <p class="tip">Click to download the current conversation</p>
-    <button @click="download" class="download-button">Download</button>
+    <button class="download-button" @click="download">Download</button>
 </template>
 
-<script setup lang="ts">
+<script setup vapor lang="ts">
 import browser from 'webextension-polyfill';
+
+type RuntimeMessage = {
+    type: 'inject';
+};
+
+const isRuntimeMessage = (message: unknown, type: RuntimeMessage['type']): message is RuntimeMessage =>
+    typeof message === 'object' &&
+    message !== null &&
+    'type' in message &&
+    message.type === type;
 
 const download = async () => {
     const tabs: browser.Tabs.Tab[] = await browser.tabs.query({ active: true, currentWindow: true });
-    if (tabs.length === 1) {
-        browser.runtime.onMessage.addListener((message: any) => {
-            if (message.type === 'inject') {
-                browser.scripting.executeScript({
-                    target: { tabId: tabs[0].id as number },
-                    files: ['inject.js'],
-                });
-            }
+    const [activeTab] = tabs;
+    if (tabs.length === 1 && typeof activeTab?.id === 'number') {
+        const tabId = activeTab.id;
+
+        browser.runtime.onMessage.addListener((message: unknown) => {
+            if (!isRuntimeMessage(message, 'inject')) return;
+
+            void browser.scripting.executeScript({
+                target: { tabId },
+                files: ['inject.js'],
+            });
         });
 
-        browser.scripting.executeScript({
-            target: { tabId: tabs[0].id as number },
+        await browser.scripting.executeScript({
+            target: { tabId },
             func: () => {
                 if (globalThis.chatSaverDownload === undefined) {
-                    chrome.runtime.sendMessage({ type: 'inject' });
+                    const extensionRuntime = (
+                        globalThis as typeof globalThis & {
+                            chrome?: {
+                                runtime?: {
+                                    sendMessage: (message: unknown) => void;
+                                };
+                            };
+                        }
+                    ).chrome?.runtime;
+
+                    extensionRuntime?.sendMessage({ type: 'inject' });
                 } else {
-                    globalThis.chatSaverDownload();
+                    void globalThis.chatSaverDownload();
                 }
-            }
+            },
         });
     }
 };
 </script>
 
 <style lang="scss">
+@use 'sass:color';
+
 #app {
     display: flex;
     flex-direction: column;
@@ -59,7 +84,7 @@ const download = async () => {
     cursor: pointer;
 
     &:active {
-        background-color: darken($color: $bg-color, $amount: 10);
+        background-color: color.adjust($bg-color, $lightness: -10%);
     }
 }
 
@@ -73,7 +98,7 @@ const download = async () => {
     flex-direction: row;
     align-items: center;
 
-    &+& {
+    & + & {
         margin-left: 20px;
     }
 
