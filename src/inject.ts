@@ -1,4 +1,5 @@
 import { toBlob } from 'html-to-image';
+import type { DownloadFormat } from '@/utils/downloadFormats';
 
 type MessageRole = 'user' | 'assistant';
 
@@ -7,6 +8,13 @@ interface Message {
     text: string;
     element: HTMLElement;
 }
+
+interface DownloadContext {
+    messages: Message[];
+    chatContainer: HTMLElement | null;
+}
+
+type DownloadHandler = (context: DownloadContext) => void | Promise<void>;
 
 const transparentImagePlaceholder =
     'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
@@ -172,8 +180,38 @@ const downloadImage = async (chatContainer: HTMLElement): Promise<void> => {
     }
 };
 
-if (globalThis.chatSaverDownload === undefined) {
-    globalThis.chatSaverDownload = async () => {
+const downloadHandlers: Record<DownloadFormat, DownloadHandler> = {
+    txt: ({ messages }) => downloadText(messages),
+    png: async ({ chatContainer }) => {
+        if (chatContainer) {
+            await downloadImage(chatContainer);
+        }
+    },
+};
+
+const allDownloadFormats = Object.keys(downloadHandlers) as DownloadFormat[];
+const downloadFormatValues = new Set<string>(allDownloadFormats);
+const downloadFormatSignature = allDownloadFormats.join(',');
+
+const normalizeDownloadFormats = (formats: readonly unknown[]): DownloadFormat[] =>
+    Array.from(
+        new Set(
+            formats.filter(
+                (format): format is DownloadFormat =>
+                    typeof format === 'string' && downloadFormatValues.has(format),
+            ),
+        ),
+    );
+
+if (globalThis.chatSaverDownloadFormatSignature !== downloadFormatSignature) {
+    globalThis.chatSaverDownload = async (formats = allDownloadFormats) => {
+        const downloadFormats = normalizeDownloadFormats(formats);
+
+        if (downloadFormats.length === 0) {
+            console.warn('Chat Saver: no download formats selected.');
+            return;
+        }
+
         const messages = findMessages();
 
         if (messages.length === 0) {
@@ -181,14 +219,11 @@ if (globalThis.chatSaverDownload === undefined) {
             return;
         }
 
-        downloadText(messages);
-
         const chatContainer = findChatContainer(messages);
 
-        if (chatContainer) {
-            await downloadImage(chatContainer);
+        for (const format of downloadFormats) {
+            await downloadHandlers[format]({ messages, chatContainer });
         }
     };
+    globalThis.chatSaverDownloadFormatSignature = downloadFormatSignature;
 }
-
-void globalThis.chatSaverDownload();
