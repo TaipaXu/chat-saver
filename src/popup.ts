@@ -1,6 +1,12 @@
 import App from './popup.vue';
-import '@/styles/index.scss';
-import { createVaporApp } from 'vue';
+import { createApp } from 'vue';
+import { mdiDownloadOutline } from '@mdi/js';
+import { createExtensionVuetify } from '@/utils/extensionVuetify';
 
-const app = createVaporApp(App);
+const vuetify = createExtensionVuetify({
+    downloadOutline: mdiDownloadOutline,
+});
+
+const app = createApp(App);
+app.use(vuetify);
 app.mount('#app');

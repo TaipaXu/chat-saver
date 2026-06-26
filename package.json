@@ -26,8 +26,10 @@
         "prepare": "vp config"
     },
     "dependencies": {
+        "@mdi/js": "^7.4.47",
         "html-to-image": "^1.11.13",
         "vue": "beta",
+        "vuetify": "^4.1.2",
         "webextension-polyfill": "^0.12.0"
     },
     "devDependencies": {
@@ -45,6 +47,7 @@
         "typescript": "~6.0.3",
         "vite": "catalog:",
         "vite-plugin-vue-devtools": "^8.1.4",
+        "vite-plugin-vuetify": "^2.1.3",
         "vite-plus": "catalog:",
         "vue-eslint-parser": "^10.4.1",
         "vue-tsc": "^3.3.5"

@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
@@ -6,8 +5,7 @@ import { fileURLToPath, URL } from 'node:url';
 import vue from '@vitejs/plugin-vue';
 import { defineConfig } from 'vite-plus';
 import vueDevTools from 'vite-plugin-vue-devtools';
-
-const require = createRequire(import.meta.url);
+import vuetify from 'vite-plugin-vuetify';
 
 const copyExtensionAssets = () => ({
     name: 'copy-extension-assets',
@@ -107,7 +105,7 @@ export default defineConfig({
             },
         ],
     },
-    plugins: [vue(), vueDevTools(), copyExtensionAssets()],
+    plugins: [vue(), vueDevTools(), vuetify(), copyExtensionAssets()],
     build: {
         rollupOptions: {
             input: ['popup.html', './src/service.ts', './src/inject.ts'],
@@ -122,10 +120,6 @@ export default defineConfig({
     resolve: {
         alias: {
             '@': fileURLToPath(new URL('./src', import.meta.url)),
-            vue: path.resolve(
-                path.dirname(require.resolve('vue/package.json')),
-                'dist/vue.runtime-with-vapor.esm-browser.js',
-            ),
         },
     },
 });
