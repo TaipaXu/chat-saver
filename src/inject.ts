@@ -24,7 +24,7 @@ interface ChatSiteAdapter {
     findImageContainer?: () => HTMLElement | null;
 }
 
-type DownloadHandler = (adapter: ChatSiteAdapter) => void | Promise<void>;
+type DownloadHandler = (adapter: ChatSiteAdapter, filename: string) => void | Promise<void>;
 
 const transparentImagePlaceholder =
     'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
@@ -79,6 +79,61 @@ const formatMessagesAsMarkdown = (messages: Message[]): string =>
     messages
         .map(({ role, text }) => `## ${role === 'user' ? 'Q' : 'A'}\n\n${text.trim()}`)
         .join('\n\n---\n\n');
+
+const escapeRegExp = (value: string): string => value.replaceAll(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const isUnsafeFilenameCharacter = (character: string): boolean => {
+    const codePoint = character.codePointAt(0);
+
+    return (
+        codePoint !== undefined &&
+        (codePoint <= 0x1f || codePoint === 0x7f || '<>:"/\\|?*'.includes(character))
+    );
+};
+
+const sanitizeFilenameSegment = (value: string): string => {
+    const sanitizedValue = Array.from(value, (character) =>
+        isUnsafeFilenameCharacter(character) ? '-' : character,
+    )
+        .join('')
+        .replaceAll(/\s+/g, ' ')
+        .replaceAll(/-+/g, '-')
+        .trim()
+        .replaceAll(/^[ .-]+|[ .-]+$/g, '');
+
+    return sanitizedValue || 'chat';
+};
+
+const stripSiteNameFromTitle = (title: string, siteName: string): string => {
+    const escapedSiteName = escapeRegExp(siteName);
+    const separatorPattern = String.raw`\s*(?:-|\u2013|\u2014|\||:)\s*`;
+    const strippedTitle = title
+        .replace(new RegExp(`^${escapedSiteName}${separatorPattern}`, 'i'), '')
+        .replace(new RegExp(`${separatorPattern}${escapedSiteName}$`, 'i'), '')
+        .trim();
+
+    return strippedTitle.toLowerCase() === siteName.toLowerCase() ? '' : strippedTitle;
+};
+
+const getConversationTitle = (siteName: string): string => {
+    const title = stripSiteNameFromTitle(document.title.trim(), siteName);
+
+    return sanitizeFilenameSegment(title);
+};
+
+const padDateSegment = (value: number): string => String(value).padStart(2, '0');
+
+const formatLocalDate = (date = new Date()): string =>
+    [date.getFullYear(), padDateSegment(date.getMonth() + 1), padDateSegment(date.getDate())].join(
+        '-',
+    );
+
+const createDownloadBasename = (adapter: ChatSiteAdapter): string =>
+    [
+        sanitizeFilenameSegment(adapter.name),
+        getConversationTitle(adapter.name),
+        formatLocalDate(),
+    ].join('-');
 
 const getChatGptConversationId = (): string => {
     const pathParts = window.location.pathname.split('/').filter(Boolean);
@@ -554,11 +609,11 @@ const downloadBlob = (blob: Blob, filename: string): void => {
     }, 60_000);
 };
 
-const downloadMarkdown = (messages: Message[]): void => {
+const downloadMarkdown = (messages: Message[], filename: string): void => {
     const content = formatMessagesAsMarkdown(messages);
     const textBlob = new Blob([content], { type: 'text/markdown' });
 
-    downloadBlob(textBlob, 'chat.md');
+    downloadBlob(textBlob, filename);
 };
 
 const getImageExportDimensions = (element: HTMLElement): { width: number; height: number } => {
@@ -606,34 +661,34 @@ const createImageBlob = async (element: HTMLElement): Promise<Blob | null> => {
     }
 };
 
-const downloadImage = async (chatContainer: HTMLElement): Promise<void> => {
+const downloadImage = async (chatContainer: HTMLElement, filename: string): Promise<void> => {
     const imageBlob = await createImageBlob(chatContainer);
 
     if (imageBlob === null) {
         throw new Error('Image export returned an empty file.');
     }
 
-    downloadBlob(imageBlob, 'chat.png');
+    downloadBlob(imageBlob, filename);
 };
 
 const downloadHandlers: Record<DownloadFormat, DownloadHandler> = {
-    md: async (adapter) => {
+    md: async (adapter, filename) => {
         const textMessages = await adapter.fetchTextMessages();
 
         if (textMessages.length === 0) {
             throw new Error('No messages were found for text export.');
         }
 
-        downloadMarkdown(textMessages);
+        downloadMarkdown(textMessages, filename);
     },
-    png: async (adapter) => {
+    png: async (adapter, filename) => {
         const chatContainer = adapter.findImageContainer?.();
 
         if (!chatContainer) {
             throw new Error(`Image export is not supported for ${adapter.name}.`);
         }
 
-        await downloadImage(chatContainer);
+        await downloadImage(chatContainer, filename);
     },
 };
 
@@ -658,9 +713,11 @@ if (globalThis.chatSaverDownloadSignature !== chatSaverDownloadSignature) {
             };
         }
 
+        const downloadBasename = createDownloadBasename(adapter);
+
         for (const format of downloadFormats) {
             try {
-                await downloadHandlers[format](adapter);
+                await downloadHandlers[format](adapter, `${downloadBasename}.${format}`);
             } catch (error) {
                 console.warn(`Chat Saver: failed to download ${format}.`, error);
 
