@@ -1,11 +1,22 @@
 import browser from 'webextension-polyfill';
+import { getSupportedChatSiteByUrl } from '@/utils/chatSites';
 
-browser.tabs.onActivated.addListener(async (activeInfo: browser.Tabs.OnActivatedActiveInfoType) => {
-    const tab: browser.Tabs.Tab = await browser.tabs.get(activeInfo.tabId);
-    const url: string | undefined = tab.url;
-    if (url && new URL(url).hostname === 'chat.openai.com') {
-        browser.action.enable(activeInfo.tabId);
+const updateActionState = async (tabId: number, url: string | undefined): Promise<void> => {
+    if (getSupportedChatSiteByUrl(url)) {
+        await browser.action.enable(tabId);
     } else {
-        browser.action.disable(activeInfo.tabId);
+        await browser.action.disable(tabId);
+    }
+};
+
+browser.tabs.onActivated.addListener(async ({ tabId }: browser.Tabs.OnActivatedActiveInfoType) => {
+    const tab: browser.Tabs.Tab = await browser.tabs.get(tabId);
+
+    await updateActionState(tabId, tab.url);
+});
+
+browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.url || tab.url) {
+        void updateActionState(tabId, changeInfo.url ?? tab.url);
     }
 });

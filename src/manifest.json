@@ -1,8 +1,8 @@
 {
     "manifest_version": 3,
     "name": "Chat Saver",
-    "version": "0.2.1",
-    "description": "A browser extension that allows you to save the current chat history of ChatGPT to your local device.",
+    "version": "0.2.0",
+    "description": "A browser extension that allows you to save current chat histories from supported AI chat sites to your local device.",
     "icons": {
         "16": "./assets/icon.png",
         "48": "./assets/icon.png",
@@ -21,11 +21,6 @@
         "type": "module",
         "service_worker": "service.js"
     },
-    "permissions": [
-        "tabs",
-        "scripting"
-    ],
-    "host_permissions": [
-        "https://chat.openai.com/"
-    ]
+    "permissions": ["tabs", "scripting"],
+    "host_permissions": ["https://chatgpt.com/*", "https://chat.deepseek.com/*"]
 }
