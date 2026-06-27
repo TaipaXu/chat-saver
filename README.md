@@ -26,7 +26,7 @@ English | [中文](./README_ZH.md)
 ## Runtime
 
 - Node.js: `24.17.0`
-- Package manager: `pnpm@11.5.2`
+- Package manager: `pnpm@11.9.0`
 - Vite+ reads these settings from `package.json`.
 
 First-time runtime setup:
