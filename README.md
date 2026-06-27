@@ -4,6 +4,8 @@ A browser extension that allows you to save the current chat history from suppor
 
 English | [中文](./README_ZH.md)
 
+![Chat Saver](app.png)
+
 ## Installation
 
 [Chrome](https://chrome.google.com/webstore/detail/chat-saver/gbccnnpigcfcheaeicpldgmjjojjmldb)

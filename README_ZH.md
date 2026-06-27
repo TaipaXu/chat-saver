@@ -4,6 +4,8 @@
 
 [English](./README.md) | 中文
 
+![Chat Saver](app.png)
+
 ## 安装
 
 [Chrome](https://chrome.google.com/webstore/detail/chat-saver/gbccnnpigcfcheaeicpldgmjjojjmldb)
