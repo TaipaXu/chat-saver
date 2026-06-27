@@ -3,7 +3,7 @@ import path from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 
 import vue from '@vitejs/plugin-vue';
-import { defineConfig } from 'vite-plus';
+import { build, defineConfig } from 'vite-plus';
 import vueDevTools from 'vite-plugin-vue-devtools';
 import vuetify from 'vite-plugin-vuetify';
 
@@ -22,6 +22,31 @@ const copyExtensionAssets = () => ({
                 recursive: true,
             }),
         ]);
+    },
+});
+
+const buildInjectScript = () => ({
+    name: 'build-inject-script',
+    async closeBundle() {
+        await build({
+            configFile: false,
+            logLevel: 'warn',
+            resolve: {
+                alias: {
+                    '@': fileURLToPath(new URL('./src', import.meta.url)),
+                },
+            },
+            build: {
+                emptyOutDir: false,
+                lib: {
+                    entry: path.resolve(process.cwd(), 'src/inject.ts'),
+                    fileName: () => 'inject.js',
+                    formats: ['iife'],
+                    name: 'ChatSaverInject',
+                },
+                outDir: 'dist',
+            },
+        });
     },
 });
 
@@ -105,10 +130,10 @@ export default defineConfig({
             },
         ],
     },
-    plugins: [vue(), vueDevTools(), vuetify(), copyExtensionAssets()],
+    plugins: [vue(), vueDevTools(), vuetify(), copyExtensionAssets(), buildInjectScript()],
     build: {
         rollupOptions: {
-            input: ['popup.html', './src/service.ts', './src/inject.ts'],
+            input: ['popup.html', './src/service.ts'],
             output: {
                 entryFileNames: '[name].js',
                 chunkFileNames: 'assets/[name]-[hash].js',

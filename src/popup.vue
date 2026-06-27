@@ -10,7 +10,7 @@
                     <div class="popup__copy">
                         <h1 class="popup__title">Chat Saver</h1>
                         <p class="popup__description">
-                            Download the current ChatGPT conversation to your device.
+                            Download the current conversation from {{ supportedSiteLabel }}.
                         </p>
                     </div>
                 </div>
@@ -29,8 +29,6 @@
                 </v-btn>
 
                 <div class="popup__formats">
-                    <div class="popup__formats-title">Download formats</div>
-
                     <div class="popup__formats-list">
                         <v-checkbox-btn
                         v-for="format in downloadFormatOptions"
@@ -39,6 +37,7 @@
                         class="popup__format"
                         color="primary"
                         density="compact"
+                        :disabled="isDownloadFormatDisabled(format.value)"
                         :label="format.label" />
                     </div>
                 </div>
@@ -51,27 +50,43 @@
                 variant="tonal">
                     {{ errorMessage }}
                 </v-alert>
+
+                <v-alert
+                v-if="successMessage"
+                class="popup__alert"
+                density="compact"
+                type="success"
+                variant="tonal">
+                    {{ successMessage }}
+                </v-alert>
             </section>
         </v-main>
     </v-app>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, type Ref } from 'vue';
+import { computed, onMounted, ref, watch, type Ref } from 'vue';
 import browser from 'webextension-polyfill';
 import {
-    allDownloadFormats,
     downloadFormatOptions,
     normalizeDownloadFormatSelection,
     type DownloadFormat,
     type DownloadFormatSelection,
 } from '@/utils/downloadFormats';
+import {
+    getSupportedChatSiteByUrl,
+    supportedChatSiteNames,
+    type SupportedChatSite,
+} from '@/utils/chatSites';
+import { chatSaverDownloadSignature } from '@/utils/downloadRuntime';
 
 const formatSelectionStorageKey = 'chatSaverDownloadFormatSelection';
-const downloadFormatSignature = allDownloadFormats.join(',');
 
 const loading: Ref<boolean> = ref(false);
 const errorMessage: Ref<string> = ref('');
+const successMessage: Ref<string> = ref('');
+const activeChatSite: Ref<SupportedChatSite | undefined> = ref(undefined);
+const supportedSiteLabel = supportedChatSiteNames.join(' or ');
 const readFormatSelection = (): DownloadFormatSelection => {
     try {
         const storedSelection = localStorage.getItem(formatSelectionStorageKey);
@@ -85,11 +100,15 @@ const readFormatSelection = (): DownloadFormatSelection => {
 };
 
 const formatSelection: Ref<DownloadFormatSelection> = ref(readFormatSelection());
-const selectedFormats = computed<DownloadFormat[]>(() =>
+const isDownloadFormatDisabled = (
+    format: DownloadFormat,
+    site: SupportedChatSite | undefined = activeChatSite.value,
+): boolean => site?.id === 'deepseek' && format === 'png';
+const getSelectedFormats = (site: SupportedChatSite | undefined): DownloadFormat[] =>
     downloadFormatOptions
-        .filter(({ value }) => formatSelection.value[value])
-        .map(({ value }) => value),
-);
+        .filter(({ value }) => formatSelection.value[value] && !isDownloadFormatDisabled(value, site))
+        .map(({ value }) => value);
+const selectedFormats = computed<DownloadFormat[]>(() => getSelectedFormats(activeChatSite.value));
 
 watch(
     formatSelection,
@@ -103,6 +122,23 @@ watch(
     { deep: true },
 );
 
+const updateActiveChatSite = async (): Promise<void> => {
+    try {
+        const tabs: browser.Tabs.Tab[] = await browser.tabs.query({ active: true, currentWindow: true });
+        const [activeTab] = tabs;
+
+        activeChatSite.value =
+            tabs.length === 1 ? getSupportedChatSiteByUrl(activeTab?.url) : undefined;
+    } catch (error) {
+        console.warn('Failed to read active chat site.', error);
+        activeChatSite.value = undefined;
+    }
+};
+
+onMounted(() => {
+    void updateActiveChatSite();
+});
+
 const injectDownloadScript = async (tabId: number) => {
     await browser.scripting.executeScript({
         target: { tabId },
@@ -110,44 +146,54 @@ const injectDownloadScript = async (tabId: number) => {
     });
 };
 
+interface DownloadExecutionResult {
+    scriptAvailable: boolean;
+    downloadResult?: ChatSaverDownloadResult;
+}
+
+const isChatSaverDownloadResult = (value: unknown): value is ChatSaverDownloadResult => {
+    if (value === null || typeof value !== 'object') return false;
+
+    const result = value as Record<string, unknown>;
+
+    return typeof result.success === 'boolean';
+};
+
 const executeDownloadScript = async (
     tabId: number,
     formats: DownloadFormat[],
-): Promise<boolean> => {
+): Promise<DownloadExecutionResult> => {
     const [result] = await browser.scripting.executeScript({
         target: { tabId },
-        args: [formats, downloadFormatSignature],
+        args: [formats, chatSaverDownloadSignature],
         func: async (
             downloadFormats: DownloadFormat[],
-            expectedDownloadFormatSignature: string,
+            expectedDownloadSignature: string,
         ) => {
             if (
                 globalThis.chatSaverDownload === undefined ||
-                globalThis.chatSaverDownloadFormatSignature !== expectedDownloadFormatSignature
+                globalThis.chatSaverDownloadSignature !== expectedDownloadSignature
             ) {
                 return false;
             }
 
-            await globalThis.chatSaverDownload(downloadFormats);
-            return true;
+            return globalThis.chatSaverDownload(downloadFormats);
         },
     });
+    const scriptResult = result?.result;
 
-    return result?.result === true;
+    return scriptResult === false || !isChatSaverDownloadResult(scriptResult)
+        ? { scriptAvailable: false }
+        : { scriptAvailable: true, downloadResult: scriptResult };
 };
 
 const download = async () => {
     if (loading.value) return;
 
-    const downloadFormats = [...selectedFormats.value];
-
-    if (downloadFormats.length === 0) {
-        errorMessage.value = 'Select at least one download format.';
-        return;
-    }
+    errorMessage.value = '';
+    successMessage.value = '';
 
     loading.value = true;
-    errorMessage.value = '';
 
     try {
         const tabs: browser.Tabs.Tab[] = await browser.tabs.query({ active: true, currentWindow: true });
@@ -158,20 +204,48 @@ const download = async () => {
             return;
         }
 
-        const tabId = activeTab.id;
-        const downloaded = await executeDownloadScript(tabId, downloadFormats);
+        const activeSite = getSupportedChatSiteByUrl(activeTab.url);
 
-        if (!downloaded) {
+        if (!activeSite) {
+            errorMessage.value = `Open a supported chat page (${supportedSiteLabel}) and try again.`;
+            return;
+        }
+
+        activeChatSite.value = activeSite;
+
+        const downloadFormats = getSelectedFormats(activeSite);
+
+        if (downloadFormats.length === 0) {
+            errorMessage.value = 'Select at least one enabled download format.';
+            return;
+        }
+
+        const tabId = activeTab.id;
+        let executionResult = await executeDownloadScript(tabId, downloadFormats);
+
+        if (!executionResult.scriptAvailable) {
             await injectDownloadScript(tabId);
 
-            if (!(await executeDownloadScript(tabId, downloadFormats))) {
+            executionResult = await executeDownloadScript(tabId, downloadFormats);
+
+            if (!executionResult.scriptAvailable) {
                 errorMessage.value =
-                    'Download script was not available. Please refresh the ChatGPT tab and try again.';
+                    'Download script was not available. Please refresh the chat tab and try again.';
+                return;
             }
         }
+
+        if (executionResult.downloadResult?.success === false) {
+            errorMessage.value =
+                executionResult.downloadResult.errorMessage ??
+                'No messages were found on the current chat page.';
+            return;
+        }
+
+        successMessage.value = `Download started from ${activeSite.name}.`;
     } catch (error) {
         console.error('Failed to download chat', error);
-        errorMessage.value = 'Download failed. Please refresh the ChatGPT tab and try again.';
+        errorMessage.value = 'Download failed. Please refresh the chat tab and try again.';
     } finally {
         loading.value = false;
     }
@@ -265,14 +339,6 @@ const download = async () => {
     gap: 8px;
 }
 
-.popup__formats-title {
-    color: rgba(var(--v-theme-on-surface), 0.72);
-    font-size: 12px;
-    font-weight: 650;
-    letter-spacing: 0;
-    line-height: 1.2;
-}
-
 .popup__formats-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -282,7 +348,7 @@ const download = async () => {
 .popup__format {
     grid-area: auto;
     min-width: 0;
-    padding: 6px 8px;
+    padding: 5px 6px;
     border: 1px solid rgba(var(--v-theme-on-surface), 0.1);
     border-radius: 8px;
     background: rgba(var(--v-theme-surface), 0.66);
@@ -290,14 +356,14 @@ const download = async () => {
     .v-label {
         min-width: 0;
         color: rgba(var(--v-theme-on-surface), 0.84);
-        font-size: 12px;
+        font-size: 11px;
         letter-spacing: 0;
         line-height: 1.2;
-        white-space: normal;
+        white-space: nowrap;
     }
 
     .v-selection-control__wrapper {
-        margin-inline-end: 6px;
+        margin-inline-end: 4px;
     }
 }
 

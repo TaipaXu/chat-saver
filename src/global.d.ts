@@ -3,6 +3,16 @@ export {};
 import type { DownloadFormat } from '@/utils/downloadFormats';
 
 declare global {
-    var chatSaverDownload: ((formats?: DownloadFormat[]) => void | Promise<void>) | undefined;
-    var chatSaverDownloadFormatSignature: string | undefined;
+    interface ChatSaverDownloadResult {
+        success: boolean;
+        siteName?: string;
+        errorMessage?: string;
+    }
+
+    var chatSaverDownload:
+        | ((
+              formats?: DownloadFormat[],
+          ) => ChatSaverDownloadResult | Promise<ChatSaverDownloadResult>)
+        | undefined;
+    var chatSaverDownloadSignature: string | undefined;
 }

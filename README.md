@@ -1,6 +1,6 @@
 # Chat Saver
 
-A browser extension that allows you to save the current chat history of ChatGPT to your local device.
+A browser extension that allows you to save the current chat history from supported AI chat sites to your local device.
 
 English | [中文](./README_ZH.md)
 
@@ -9,6 +9,11 @@ English | [中文](./README_ZH.md)
 [Chrome](https://chrome.google.com/webstore/detail/chat-saver/gbccnnpigcfcheaeicpldgmjjojjmldb)
 
 [Edge](https://microsoftedge.microsoft.com/addons/detail/chat-saver/bcadbdekpengpfjjhdijmcmafplkjmeo)
+
+## Supported Sites
+
+- ChatGPT (`chatgpt.com`)
+- DeepSeek (`chat.deepseek.com`)
 
 ## Tech Stack
 

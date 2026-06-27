@@ -1,5 +1,5 @@
 export const downloadFormatOptions = [
-    { value: 'txt', label: 'Text (.txt)' },
+    { value: 'md', label: 'Markdown (.md)' },
     { value: 'png', label: 'Image (.png)' },
 ] as const;
 

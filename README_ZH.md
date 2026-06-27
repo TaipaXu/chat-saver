@@ -1,6 +1,6 @@
 # Chat Saver
 
-这是一个浏览器扩展，允许你将 ChatGPT 的当前对话历史保存到本地设备。
+这是一个浏览器扩展，允许你将已支持 AI 聊天网站的当前对话历史保存到本地设备。
 
 [English](./README.md) | 中文
 
@@ -9,6 +9,11 @@
 [Chrome](https://chrome.google.com/webstore/detail/chat-saver/gbccnnpigcfcheaeicpldgmjjojjmldb)
 
 [Edge](https://microsoftedge.microsoft.com/addons/detail/chat-saver/bcadbdekpengpfjjhdijmcmafplkjmeo)
+
+## 支持的网站
+
+- ChatGPT（`chatgpt.com`）
+- DeepSeek（`chat.deepseek.com`）
 
 ## 技术栈
 

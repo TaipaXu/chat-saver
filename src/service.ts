@@ -1,19 +1,8 @@
 import browser from 'webextension-polyfill';
-
-const chatHosts = new Set(['chatgpt.com']);
-
-const isChatUrl = (url: string | undefined): boolean => {
-    if (!url) return false;
-
-    try {
-        return chatHosts.has(new URL(url).hostname);
-    } catch {
-        return false;
-    }
-};
+import { getSupportedChatSiteByUrl } from '@/utils/chatSites';
 
 const updateActionState = async (tabId: number, url: string | undefined): Promise<void> => {
-    if (isChatUrl(url)) {
+    if (getSupportedChatSiteByUrl(url)) {
         await browser.action.enable(tabId);
     } else {
         await browser.action.disable(tabId);
