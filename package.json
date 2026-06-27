@@ -1,6 +1,6 @@
 {
     "name": "chat-saver",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "private": true,
     "description": "A browser extension that allows you to save current chat histories from supported AI chat sites to your local device.",
     "bugs": "https://github.com/TaipaXu/chat-saver/issues",

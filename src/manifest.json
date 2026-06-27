@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Chat Saver",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "description": "A browser extension that allows you to save current chat histories from supported AI chat sites to your local device.",
     "icons": {
         "16": "./assets/icon.png",
